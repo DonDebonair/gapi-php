@@ -4,7 +4,7 @@
     "description": "Gapi-php is a new version of the Gapi-php class, for accessing Google Analytics accounts.",
     "keywords": ["google analytics", "2.4"],
     "homepage": "http://dandydev.net",
-    "version": "1.4",
+    "version": "1.5",
     "license": "GPL",
     "authors": [
         {

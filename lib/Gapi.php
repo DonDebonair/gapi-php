@@ -1,5 +1,8 @@
 <?php
 
+require_once 'GapiAccountEntry.php';
+require_once 'GapiReportEntry.php';
+
 /**
  * This is a new version of the Gapi class, with updated API urls
  * and some fixed errors. If you have any comments, feel free to
@@ -47,6 +50,7 @@ class Gapi
   private $report_aggregate_metrics = array();
   private $report_root_parameters = array();
   private $results = array();
+  private $oauth2;
   
   /**
    * Constructor function for all new gapi instances
@@ -58,8 +62,9 @@ class Gapi
    * @param String $token
    * @return gapi
    */
-  public function __construct($email, $password, $token=null)
+  public function __construct($email, $password, $token=null, $useOauthToken = false)
   {
+    $this->oauth2 = $useOauthToken;
     if($token !== null)
     {
       $this->auth_token = $token;
@@ -117,7 +122,7 @@ class Gapi
    * @param Int $start_index OPTIONAL: Start index of results
    * @param Int $max_results OPTIONAL: Max results returned
    */
-  public function requestReportData($report_id, $dimensions=null, $metrics, $sort_metric=null, $filter=null, $start_date=null, $end_date=null, $start_index=1, $max_results=30)
+  public function requestReportData($report_id, $dimensions, $metrics, $sort_metric=null, $filter=null, $start_date=null, $end_date=null, $start_index=1, $max_results=30)
   {
     $parameters = array('ids'=>'ga:' . $report_id);
     
@@ -261,7 +266,7 @@ class Gapi
    * Report Account Mapper to convert the XML to array of useful PHP objects
    *
    * @param String $xml_string
-   * @return Array of gapiAccountEntry objects
+   * @return Array of GapiAccountEntry objects
    */
   protected function accountObjectMapper($xml_string)
   {
@@ -301,7 +306,7 @@ class Gapi
       $properties['title'] = strval($entry->title);
       $properties['updated'] = strval($entry->updated);
       
-      $results[] = new gapiAccountEntry($properties);
+      $results[] = new GapiAccountEntry($properties);
     }
     
     $this->account_root_parameters = $account_root_parameters;
@@ -315,7 +320,7 @@ class Gapi
    * Report Object Mapper to convert the XML to array of useful PHP objects
    *
    * @param String $xml_string
-   * @return Array of gapiReportEntry objects
+   * @return Array of GapiReportEntry objects
    */
   protected function reportObjectMapper($xml_string)
   {
@@ -393,7 +398,7 @@ class Gapi
         $dimensions[str_replace('ga:','',$dimension->attributes()->name)] = strval($dimension->attributes()->value);
       }
       
-      $results[] = new gapiReportEntry($metrics,$dimensions);
+      $results[] = new GapiReportEntry($metrics,$dimensions);
     }
     
     $this->report_root_parameters = $report_root_parameters;
@@ -439,7 +444,11 @@ class Gapi
    */
   protected function generateAuthHeader()
   {
-    return array('Authorization: GoogleLogin auth=' . $this->auth_token);
+    if($this->oauth2) {
+        return array('Authorization: Bearer ' . $this->auth_token);
+    } else {
+        return array('Authorization: GoogleLogin auth=' . $this->auth_token);
+    }
   }
   
   /**
@@ -665,169 +674,5 @@ class Gapi
     }
 
     throw new Exception('No valid root parameter or aggregate metric called "' . $name . '"');
-  }
-}
-
-/**
- * Class gapiAccountEntry
- * 
- * Storage for individual gapi account entries
- *
- */
-class gapiAccountEntry
-{
-  private $properties = array();
-  
-  public function __construct($properties)
-  {
-    $this->properties = $properties;
-  }
-  
-  /**
-   * toString function to return the name of the account
-   *
-   * @return String
-   */
-  public function __toString()
-  {
-    if(isset($this->properties['title']))
-    {
-      return $this->properties['title'];
-    }
-    else 
-    {
-      return;
-    }
-  }
-  
-  /**
-   * Get an associative array of the properties
-   * and the matching values for the current result
-   *
-   * @return Array
-   */
-  public function getProperties()
-  {
-    return $this->properties;
-  }
-  
-  /**
-   * Call method to find a matching parameter to return
-   *
-   * @param $name String name of function called
-   * @return String
-   * @throws Exception if not a valid parameter, or not a 'get' function
-   */
-  public function __call($name,$parameters)
-  {
-    if(!preg_match('/^get/',$name))
-    {
-      throw new Exception('No such function "' . $name . '"');
-    }
-    
-    $name = preg_replace('/^get/','',$name);
-    
-    $property_key = gapi::array_key_exists_nc($name,$this->properties);
-    
-    if($property_key)
-    {
-      return $this->properties[$property_key];
-    }
-    
-    throw new Exception('No valid property called "' . $name . '"');
-  }
-}
-
-/**
- * Class gapiReportEntry
- * 
- * Storage for individual gapi report entries
- *
- */
-class gapiReportEntry
-{
-  private $metrics = array();
-  private $dimensions = array();
-  
-  public function __construct($metrics,$dimesions)
-  {
-    $this->metrics = $metrics;
-    $this->dimensions = $dimesions;
-  }
-  
-  /**
-   * toString function to return the name of the result
-   * this is a concatented string of the dimesions chosen
-   * 
-   * For example:
-   * 'Firefox 3.0.10' from browser and browserVersion
-   *
-   * @return String
-   */
-  public function __toString()
-  {
-    if(is_array($this->dimensions))
-    {
-      return implode(' ',$this->dimensions);
-    }
-    else 
-    {
-      return '';
-    }
-  }
-  
-  /**
-   * Get an associative array of the dimesions
-   * and the matching values for the current result
-   *
-   * @return Array
-   */
-  public function getDimesions()
-  {
-    return $this->dimensions;
-  }
-  
-  /**
-   * Get an array of the metrics and the matchning
-   * values for the current result
-   *
-   * @return Array
-   */
-  public function getMetrics()
-  {
-    return $this->metrics;
-  }
-  
-  /**
-   * Call method to find a matching metric or dimension to return
-   *
-   * @param $name String name of function called
-   * @return String
-   * @throws Exception if not a valid metric or dimensions, or not a 'get' function
-   */
-  public function __call($name,$parameters)
-  {
-    if(!preg_match('/^get/',$name))
-    {
-      throw new Exception('No such function "' . $name . '"');
-    }
-    
-    $name = preg_replace('/^get/','',$name);
-    
-    $metric_key = gapi::array_key_exists_nc($name,$this->metrics);
-    
-    if($metric_key)
-    {
-      return $this->metrics[$metric_key];
-    }
-    
-    $dimension_key = gapi::array_key_exists_nc($name,$this->dimensions);
-    
-    if($dimension_key)
-    {
-      return $this->dimensions[$dimension_key];
-    }
-
-    throw new Exception('No valid metric or dimesion called "' . $name . '"');
   }
 }
