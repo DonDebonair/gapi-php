@@ -1,8 +1,5 @@
 <?php
 
-require_once 'GapiAccountEntry.php';
-require_once 'GapiReportEntry.php';
-
 /**
  * This is a new version of the Gapi class, with updated API urls
  * and some fixed errors. If you have any comments, feel free to
@@ -33,6 +30,8 @@ require_once 'GapiReportEntry.php';
  * @version 1.3
  * 
  */
+
+namespace Gapi;
 
 class Gapi
 {
@@ -101,7 +100,7 @@ class Gapi
     }
     else 
     {
-      throw new Exception('GAPI: Failed to request account data. Error: "' . strip_tags($response['body']) . '"');
+      throw new \Exception('GAPI: Failed to request account data. Error: "' . strip_tags($response['body']) . '"');
     }
   }
   
@@ -231,7 +230,7 @@ class Gapi
     }
     else 
     {
-      throw new Exception('GAPI: Failed to request report data. Error: "' . strip_tags($response['body']) . '"');
+      throw new \Exception('GAPI: Failed to request report data. Error: "' . strip_tags($response['body']) . '"');
     }
   }
 
@@ -431,7 +430,7 @@ class Gapi
     
     if(substr($response['code'],0,1) != '2' || !is_array($auth_token) || empty($auth_token['Auth']))
     {
-      throw new Exception('GAPI: Failed to authenticate user. Error: "' . strip_tags($response['body']) . '"');
+      throw new \Exception('GAPI: Failed to authenticate user. Error: "' . strip_tags($response['body']) . '"');
     }
     
     $this->auth_token = $auth_token['Auth'];
@@ -485,7 +484,7 @@ class Gapi
     }
     else 
     {
-      throw new Exception('Invalid http interface defined. No such interface "' . gapi::http_interface . '"');
+      throw new \Exception('Invalid http interface defined. No such interface "' . gapi::http_interface . '"');
     }
   }
   
@@ -647,14 +646,14 @@ class Gapi
    *
    * @param $name String name of function called
    * @return String
-   * @throws Exception if not a valid parameter or aggregate 
+   * @throws \Exception if not a valid parameter or aggregate
    * metric, or not a 'get' function
    */
   public function __call($name,$parameters)
   {
     if(!preg_match('/^get/',$name))
     {
-      throw new Exception('No such function "' . $name . '"');
+      throw new \Exception('No such function "' . $name . '"');
     }
     
     $name = preg_replace('/^get/','',$name);
@@ -673,6 +672,6 @@ class Gapi
       return $this->report_aggregate_metrics[$aggregate_metric_key];
     }
 
-    throw new Exception('No valid root parameter or aggregate metric called "' . $name . '"');
+    throw new \Exception('No valid root parameter or aggregate metric called "' . $name . '"');
   }
 }
