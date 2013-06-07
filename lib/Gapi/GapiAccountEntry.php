@@ -44,6 +44,7 @@ class GapiAccountEntry
   {
     return $this->properties;
   }
+
   
   /**
    * Call method to find a matching parameter to return
