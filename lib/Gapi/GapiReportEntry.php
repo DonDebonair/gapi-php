@@ -3,9 +3,9 @@
 namespace Gapi;
 
 /**
- * Class gapiReportEntry
+ * Class GapiReportEntry
  * 
- * Storage for individual gapi report entries
+ * Storage for individual Gapi report entries
  *
  */
 class GapiReportEntry
@@ -66,10 +66,11 @@ class GapiReportEntry
    * Call method to find a matching metric or dimension to return
    *
    * @param $name String name of function called
+   * @param $parameters
    * @return String
    * @throws \Exception if not a valid metric or dimensions, or not a 'get' function
    */
-  public function __call($name,$parameters)
+  public function __call($name, $parameters)
   {
     if(!preg_match('/^get/',$name))
     {
@@ -78,14 +79,14 @@ class GapiReportEntry
     
     $name = preg_replace('/^get/','',$name);
     
-    $metric_key = gapi::array_key_exists_nc($name,$this->metrics);
+    $metric_key = Gapi::array_key_exists_nc($name,$this->metrics);
     
     if($metric_key)
     {
       return $this->metrics[$metric_key];
     }
     
-    $dimension_key = gapi::array_key_exists_nc($name,$this->dimensions);
+    $dimension_key = Gapi::array_key_exists_nc($name,$this->dimensions);
     
     if($dimension_key)
     {

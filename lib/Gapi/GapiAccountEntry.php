@@ -3,9 +3,9 @@
 namespace Gapi;
 
 /**
- * Class gapiAccountEntry
+ * Class GapiAccountEntry
  * 
- * Storage for individual gapi account entries
+ * Storage for individual Gapi account entries
  *
  */
 class GapiAccountEntry
@@ -30,7 +30,7 @@ class GapiAccountEntry
     }
     else 
     {
-      return;
+      return NULL;
     }
   }
   
@@ -49,10 +49,11 @@ class GapiAccountEntry
    * Call method to find a matching parameter to return
    *
    * @param $name String name of function called
+   * @param $parameters
    * @return String
    * @throws \Exception if not a valid parameter, or not a 'get' function
    */
-  public function __call($name,$parameters)
+  public function __call($name, $parameters)
   {
     if(!preg_match('/^get/',$name))
     {
@@ -61,7 +62,7 @@ class GapiAccountEntry
     
     $name = preg_replace('/^get/','',$name);
     
-    $property_key = gapi::array_key_exists_nc($name,$this->properties);
+    $property_key = Gapi::array_key_exists_nc($name,$this->properties);
     
     if($property_key)
     {

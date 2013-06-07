@@ -33,38 +33,43 @@
 
 namespace Gapi;
 
+/**
+ * Class Gapi
+ *
+ */
 class Gapi
 {
-  const HTTP_INTERFACE = 'auto'; //'auto': autodetect, 'curl' or 'fopen'
+  const HTTP_INTERFACE   = 'auto'; //'auto': autodetect, 'curl' or 'fopen'
   
   const CLIENT_LOGIN_URL = 'https://www.google.com/accounts/ClientLogin';
   const ACCOUNT_DATA_URL = 'https://www.googleapis.com/analytics/v2.4/management/accounts/~all/webproperties/~all/profiles';
-  const REPORT_DATA_URL = 'https://www.googleapis.com/analytics/v2.4/data';
-  const INTERFACE_NAME = 'GAPI-1.3';
-  const DEV_MODE = false;
+  const REPORT_DATA_URL  = 'https://www.googleapis.com/analytics/v2.4/data';
+  const INTERFACE_NAME   = 'GAPI-1.3';
+  const DEV_MODE         = FALSE;
   
-  private $auth_token = null;
-  private $account_entries = array();
-  private $account_root_parameters = array();
+  private $auth_token               = NULL;
+  private $account_root_parameters  = array();
   private $report_aggregate_metrics = array();
-  private $report_root_parameters = array();
-  private $results = array();
+  private $report_root_parameters   = array();
+  private $results                  = array();
   private $oauth2;
   
   /**
-   * Constructor function for all new gapi instances
+   * Constructor function for all new Gapi instances
    * 
    * Set up authenticate with Google and get auth_token
    *
-   * @param String $email
-   * @param String $password
-   * @param String $token
-   * @return gapi
+   * @param String  $email
+   * @param String  $password
+   * @param String  $token
+   * @param boolean $useOauthToken
+   *
+   * @return Gapi
    */
-  public function __construct($email, $password, $token=null, $useOauthToken = false)
+  public function __construct($email, $password, $token = NULL, $useOauthToken = FALSE)
   {
     $this->oauth2 = $useOauthToken;
-    if($token !== null)
+    if ($token !== NULL)
     {
       $this->auth_token = $token;
     }
@@ -89,16 +94,19 @@ class Gapi
    *
    * @param Int $start_index OPTIONAL: Start index of results
    * @param Int $max_results OPTIONAL: Max results returned
+   *
+   * @throws \Exception
+   * @return array
    */
-  public function requestAccountData($start_index=1, $max_results=20)
+  public function requestAccountData($start_index = 1, $max_results = 20)
   {
-    $response = $this->httpRequest(gapi::ACCOUNT_DATA_URL, array('start-index'=>$start_index,'max-results'=>$max_results), null, $this->generateAuthHeader());
+    $response = $this->httpRequest(Gapi::ACCOUNT_DATA_URL, array('start-index'=>$start_index,'max-results'=>$max_results), NULL, $this->generateAuthHeader());
     
     if(substr($response['code'],0,1) == '2')
     {
       return $this->accountObjectMapper($response['body']);
     }
-    else 
+    else
     {
       throw new \Exception('GAPI: Failed to request account data. Error: "' . strip_tags($response['body']) . '"');
     }
@@ -120,8 +128,12 @@ class Gapi
    * @param String $end_date OPTIONAL: End of reporting period
    * @param Int $start_index OPTIONAL: Start index of results
    * @param Int $max_results OPTIONAL: Max results returned
+   *
+   * @throws \Exception
+   *
+   * @return array
    */
-  public function requestReportData($report_id, $dimensions, $metrics, $sort_metric=null, $filter=null, $start_date=null, $end_date=null, $start_index=1, $max_results=30)
+  public function requestReportData($report_id, $dimensions, $metrics, $sort_metric = NULL, $filter = NULL, $start_date = NULL, $end_date = NULL, $start_index = 1, $max_results = 30)
   {
     $parameters = array('ids'=>'ga:' . $report_id);
     
@@ -134,7 +146,7 @@ class Gapi
       }
       $parameters['dimensions'] = substr($dimensions_string,1);
     }
-    elseif($dimensions == null)
+    elseif($dimensions == NULL)
     {
       $parameters['dimensions'] = '';
     }
@@ -157,7 +169,7 @@ class Gapi
       $parameters['metrics'] = 'ga:'.$metrics;
     }
     
-    if($sort_metric==null&&isset($parameters['metrics']))
+    if($sort_metric==NULL&&isset($parameters['metrics']))
     {
       $parameters['sort'] = $parameters['metrics'];
     }
@@ -192,23 +204,23 @@ class Gapi
       }
     }
     
-    if($filter!=null)
+    if($filter!=NULL)
     {
       $filter = $this->processFilter($filter);
-      if($filter!==false)
+      if($filter!==FALSE)
       {
         $parameters['filters'] = $filter;
       }
     }
     
-    if($start_date==null)
+    if($start_date==NULL)
     {
       $start_date=date('Y-m-d',strtotime('1 month ago'));
     }
     
     $parameters['start-date'] = $start_date;
     
-    if($end_date==null)
+    if($end_date==NULL)
     {
       $end_date=date('Y-m-d');
     }
@@ -219,16 +231,16 @@ class Gapi
     $parameters['start-index'] = $start_index;
     $parameters['max-results'] = $max_results;
     
-    $parameters['prettyprint'] = gapi::DEV_MODE ? 'true' : 'false';
+    $parameters['prettyprint'] = Gapi::DEV_MODE ? 'true' : 'false';
     
-    $response = $this->httpRequest(gapi::REPORT_DATA_URL, $parameters, null, $this->generateAuthHeader());
+    $response = $this->httpRequest(Gapi::REPORT_DATA_URL, $parameters, NULL, $this->generateAuthHeader());
     
     //HTTP 2xx
     if(substr($response['code'],0,1) == '2')
     {
       return $this->reportObjectMapper($response['body']);
     }
-    else 
+    else
     {
       throw new \Exception('GAPI: Failed to request report data. Error: "' . strip_tags($response['body']) . '"');
     }
@@ -257,7 +269,7 @@ class Gapi
     }
     else 
     {
-      return false;
+      return FALSE;
     }
   }
   
@@ -271,7 +283,7 @@ class Gapi
   {
     $xml = simplexml_load_string($xml_string);
     
-    $this->results = null;
+    $this->results = NULL;
     
     $results = array();
     $account_root_parameters = array();
@@ -325,7 +337,7 @@ class Gapi
   {
     $xml = simplexml_load_string($xml_string);
     
-    $this->results = null;
+    $this->results = NULL;
     $results = array();
     
     $report_root_parameters = array();
@@ -412,6 +424,8 @@ class Gapi
    *
    * @param String $email
    * @param String $password
+   *
+   * @throws \Exception
    */
   protected function authenticateUser($email, $password)
   {
@@ -419,11 +433,11 @@ class Gapi
       'accountType' => 'GOOGLE',
       'Email' => $email,
       'Passwd' => $password,
-      'source' => gapi::INTERFACE_NAME,
+      'source' => Gapi::INTERFACE_NAME,
       'service' => 'analytics'
     );
     
-    $response = $this->httpRequest(gapi::CLIENT_LOGIN_URL,null,$post_variables);
+    $response = $this->httpRequest(Gapi::CLIENT_LOGIN_URL,NULL,$post_variables);
     
     //Convert newline delimited variables into url format then import to array
     parse_str(str_replace(array("\n","\r\n"),'&',$response['body']),$auth_token);
@@ -452,17 +466,21 @@ class Gapi
   
   /**
    * Perform http request
-   * 
    *
-   * @param Array $get_variables
-   * @param Array $post_variables
-   * @param Array $headers
+   * @param string $url     request url
+   * @param Array  $get_    variables
+   * @param Array  $post_   variables
+   * @param Array  $headers
+   *
+   * @throws \Exception
+   *
+   * @return array
    */
-  protected function httpRequest($url, $get_variables=null, $post_variables=null, $headers=null)
+  protected function httpRequest($url, $get_variables = NULL, $post_variables = NULL, $headers = NULL)
   {
-    $interface = gapi::HTTP_INTERFACE;
+    $interface = Gapi::HTTP_INTERFACE;
     
-    if(gapi::HTTP_INTERFACE =='auto')
+    if(Gapi::HTTP_INTERFACE =='auto')
     {
       if(function_exists('curl_exec'))
       {
@@ -484,19 +502,22 @@ class Gapi
     }
     else 
     {
-      throw new \Exception('Invalid http interface defined. No such interface "' . gapi::HTTP_INTERFACE . '"');
+      throw new \Exception('Invalid http interface defined. No such interface "' . Gapi::HTTP_INTERFACE . '"');
     }
   }
   
   /**
    * HTTP request using PHP CURL functions
    * Requires curl library installed and configured for PHP
-   * 
+   *
+   * @param string request url
    * @param Array $get_variables
    * @param Array $post_variables
    * @param Array $headers
+   *
+   * @return array
    */
-  private function curlRequest($url, $get_variables=null, $post_variables=null, $headers=null)
+  private function curlRequest($url, $get_variables = NULL, $post_variables = NULL, $headers = NULL)
   {
     $ch = curl_init();
     
@@ -506,16 +527,16 @@ class Gapi
     }
     else 
     {
-      $get_variables = null;
+      $get_variables = NULL;
     }
     
     curl_setopt($ch, CURLOPT_URL, $url . $get_variables);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); //CURL doesn't like google's cert
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE); //CURL doesn't like google's cert
     
     if(is_array($post_variables))
     {
-      curl_setopt($ch, CURLOPT_POST, true);
+      curl_setopt($ch, CURLOPT_POST, TRUE);
       curl_setopt($ch, CURLOPT_POSTFIELDS, $post_variables);
     }
     
@@ -536,11 +557,14 @@ class Gapi
    * HTTP request using native PHP fopen function
    * Requires PHP openSSL
    *
+   * @param string $url request url
    * @param Array $get_variables
    * @param Array $post_variables
    * @param Array $headers
+   *
+   * @return array
    */
-  private function fopenRequest($url, $get_variables=null, $post_variables=null, $headers=null)
+  private function fopenRequest($url, $get_variables = NULL, $post_variables = NULL, $headers = NULL)
   {
     $http_options = array('method'=>'GET','timeout'=>3);
     
@@ -559,7 +583,7 @@ class Gapi
     }
     else 
     {
-      $get_variables = null;
+      $get_variables = NULL;
     }
     
     if(is_array($post_variables))
@@ -577,9 +601,9 @@ class Gapi
     }
     
     $context = stream_context_create(array('http'=>$http_options));
-    $response = @file_get_contents($url . $get_variables, null, $context);  
+    $response = @file_get_contents($url . $get_variables, NULL, $context);
     
-    return array('body'=>$response!==false?$response:'Request failed, fopen provides no further information','code'=>$response!==false?'200':'400');
+    return array('body'=>$response!==FALSE?$response:'Request failed, fopen provides no further information','code'=>$response!==FALSE?'200':'400');
   }
   
   /**
@@ -598,7 +622,7 @@ class Gapi
     }
     if (!(is_string($key) && is_array($search)))
     {
-      return false;
+      return FALSE;
     }
     $key = strtolower($key);
     foreach ($search as $k => $v)
@@ -608,7 +632,7 @@ class Gapi
         return $k;
       }
     }
-    return false;
+    return FALSE;
   }
   
   /**
@@ -645,11 +669,12 @@ class Gapi
    * aggregate metric to return
    *
    * @param $name String name of function called
+   * @param $parameters array
    * @return String
    * @throws \Exception if not a valid parameter or aggregate
    * metric, or not a 'get' function
    */
-  public function __call($name,$parameters)
+  public function __call($name, $parameters)
   {
     if(!preg_match('/^get/',$name))
     {
@@ -658,14 +683,14 @@ class Gapi
     
     $name = preg_replace('/^get/','',$name);
     
-    $parameter_key = gapi::array_key_exists_nc($name,$this->report_root_parameters);
+    $parameter_key = Gapi::array_key_exists_nc($name,$this->report_root_parameters);
     
     if($parameter_key)
     {
       return $this->report_root_parameters[$parameter_key];
     }
     
-    $aggregate_metric_key = gapi::array_key_exists_nc($name,$this->report_aggregate_metrics);
+    $aggregate_metric_key = Gapi::array_key_exists_nc($name,$this->report_aggregate_metrics);
     
     if($aggregate_metric_key)
     {
