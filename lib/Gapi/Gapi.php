@@ -1,8 +1,5 @@
 <?php
 
-require_once 'GapiAccountEntry.php';
-require_once 'GapiReportEntry.php';
-
 /**
  * This is a new version of the Gapi class, with updated API urls
  * and some fixed errors. If you have any comments, feel free to
@@ -34,38 +31,47 @@ require_once 'GapiReportEntry.php';
  * 
  */
 
+namespace Gapi;
+
+/**
+ * Class Gapi
+ *
+ * Gapi - Google Analytics PHP Interface
+ *
+ */
 class Gapi
 {
-  const http_interface = 'auto'; //'auto': autodetect, 'curl' or 'fopen'
+  const HTTP_INTERFACE   = 'auto'; //'auto': autodetect, 'curl' or 'fopen'
   
-  const client_login_url = 'https://www.google.com/accounts/ClientLogin';
-  const account_data_url = 'https://www.googleapis.com/analytics/v2.4/management/accounts/~all/webproperties/~all/profiles';
-  const report_data_url = 'https://www.googleapis.com/analytics/v2.4/data';
-  const interface_name = 'GAPI-1.3';
-  const dev_mode = false;
+  const CLIENT_LOGIN_URL = 'https://www.google.com/accounts/ClientLogin';
+  const ACCOUNT_DATA_URL = 'https://www.googleapis.com/analytics/v2.4/management/accounts/~all/webproperties/~all/profiles';
+  const REPORT_DATA_URL  = 'https://www.googleapis.com/analytics/v2.4/data';
+  const INTERFACE_NAME   = 'GAPI-1.3';
+  const DEV_MODE         = FALSE;
   
-  private $auth_token = null;
-  private $account_entries = array();
-  private $account_root_parameters = array();
+  private $auth_token               = NULL;
+  private $account_root_parameters  = array();
   private $report_aggregate_metrics = array();
-  private $report_root_parameters = array();
-  private $results = array();
+  private $report_root_parameters   = array();
+  private $results                  = array();
   private $oauth2;
   
   /**
-   * Constructor function for all new gapi instances
+   * Constructor function for all new Gapi instances
    * 
    * Set up authenticate with Google and get auth_token
    *
-   * @param String $email
-   * @param String $password
-   * @param String $token
-   * @return gapi
+   * @param String  $email
+   * @param String  $password
+   * @param String  $token
+   * @param boolean $useOauthToken
+   *
+   * @return Gapi
    */
-  public function __construct($email, $password, $token=null, $useOauthToken = false)
+  public function __construct ($email, $password, $token = NULL, $useOauthToken = FALSE)
   {
     $this->oauth2 = $useOauthToken;
-    if($token !== null)
+    if ($token !== NULL)
     {
       $this->auth_token = $token;
     }
@@ -80,7 +86,7 @@ class Gapi
    *
    * @return String
    */
-  public function getAuthToken()
+  public function getAuthToken ()
   {
     return $this->auth_token;
   }
@@ -90,18 +96,31 @@ class Gapi
    *
    * @param Int $start_index OPTIONAL: Start index of results
    * @param Int $max_results OPTIONAL: Max results returned
+   *
+   * @throws \Exception
+   * @return array
    */
-  public function requestAccountData($start_index=1, $max_results=20)
+  public function requestAccountData ($start_index = 1, $max_results = 20)
   {
-    $response = $this->httpRequest(gapi::account_data_url, array('start-index'=>$start_index,'max-results'=>$max_results), null, $this->generateAuthHeader());
+    $response = $this->httpRequest
+    (
+      Gapi::ACCOUNT_DATA_URL,
+      array
+      (
+        'start-index' => $start_index,
+        'max-results' => $max_results,
+      ),
+      NULL,
+      $this->generateAuthHeader()
+    );
     
-    if(substr($response['code'],0,1) == '2')
+    if ((integer)substr($response['code'], 0, 1) === 2)
     {
       return $this->accountObjectMapper($response['body']);
     }
-    else 
+    else
     {
-      throw new Exception('GAPI: Failed to request account data. Error: "' . strip_tags($response['body']) . '"');
+      throw new \RuntimeException('GAPI: Failed to request account data. Error: "' . strip_tags($response['body']) . '"');
     }
   }
   
@@ -121,21 +140,25 @@ class Gapi
    * @param String $end_date OPTIONAL: End of reporting period
    * @param Int $start_index OPTIONAL: Start index of results
    * @param Int $max_results OPTIONAL: Max results returned
+   *
+   * @throws \Exception
+   *
+   * @return array
    */
-  public function requestReportData($report_id, $dimensions, $metrics, $sort_metric=null, $filter=null, $start_date=null, $end_date=null, $start_index=1, $max_results=30)
+  public function requestReportData ($report_id, $dimensions, $metrics, $sort_metric = NULL, $filter = NULL, $start_date = NULL, $end_date = NULL, $start_index = 1, $max_results = 30)
   {
-    $parameters = array('ids'=>'ga:' . $report_id);
+    $parameters = array('ids' => 'ga:' . $report_id);
     
-    if(is_array($dimensions))
+    if (is_array($dimensions))
     {
       $dimensions_string = '';
-      foreach($dimensions as $dimesion)
+      foreach ($dimensions as $dimesion)
       {
         $dimensions_string .= ',ga:' . $dimesion;
       }
       $parameters['dimensions'] = substr($dimensions_string,1);
     }
-    elseif($dimensions == null)
+    elseif ($dimensions == NULL)
     {
       $parameters['dimensions'] = '';
     }
@@ -144,7 +167,7 @@ class Gapi
       $parameters['dimensions'] = 'ga:'.$dimensions;
     }
 
-    if(is_array($metrics))
+    if (is_array($metrics))
     {
       $metrics_string = '';
       foreach($metrics as $metric)
@@ -158,18 +181,18 @@ class Gapi
       $parameters['metrics'] = 'ga:'.$metrics;
     }
     
-    if($sort_metric==null&&isset($parameters['metrics']))
+    if ($sort_metric == NULL && isset($parameters['metrics']))
     {
       $parameters['sort'] = $parameters['metrics'];
     }
-    elseif(is_array($sort_metric))
+    elseif (is_array($sort_metric))
     {
       $sort_metric_string = '';
       
-      foreach($sort_metric as $sort_metric_value)
+      foreach ($sort_metric as $sort_metric_value)
       {
         //Reverse sort - Thanks Nick Sullivan
-        if (substr($sort_metric_value, 0, 1) == "-")
+        if (substr($sort_metric_value, 0, 1) === "-")
         {
           $sort_metric_string .= ',-ga:' . substr($sort_metric_value, 1); // Descending
         }
@@ -183,7 +206,7 @@ class Gapi
     }
     else 
     {
-      if (substr($sort_metric, 0, 1) == "-")
+      if (substr($sort_metric, 0, 1) === "-")
       {
         $parameters['sort'] = '-ga:' . substr($sort_metric, 1);
       }
@@ -193,23 +216,23 @@ class Gapi
       }
     }
     
-    if($filter!=null)
+    if ($filter !== NULL)
     {
       $filter = $this->processFilter($filter);
-      if($filter!==false)
+      if ($filter !== FALSE)
       {
         $parameters['filters'] = $filter;
       }
     }
     
-    if($start_date==null)
+    if ($start_date === NULL)
     {
       $start_date=date('Y-m-d',strtotime('1 month ago'));
     }
     
     $parameters['start-date'] = $start_date;
     
-    if($end_date==null)
+    if ($end_date === NULL)
     {
       $end_date=date('Y-m-d');
     }
@@ -220,18 +243,18 @@ class Gapi
     $parameters['start-index'] = $start_index;
     $parameters['max-results'] = $max_results;
     
-    $parameters['prettyprint'] = gapi::dev_mode ? 'true' : 'false';
+    $parameters['prettyprint'] = Gapi::DEV_MODE ? 'true' : 'false';
     
-    $response = $this->httpRequest(gapi::report_data_url, $parameters, null, $this->generateAuthHeader());
+    $response = $this->httpRequest(Gapi::REPORT_DATA_URL, $parameters, NULL, $this->generateAuthHeader());
     
     //HTTP 2xx
-    if(substr($response['code'],0,1) == '2')
+    if ((integer)substr($response['code'],0,1) === 2)
     {
       return $this->reportObjectMapper($response['body']);
     }
-    else 
+    else
     {
-      throw new Exception('GAPI: Failed to request report data. Error: "' . strip_tags($response['body']) . '"');
+      throw new \RuntimeException('GAPI: Failed to request report data. Error: "' . strip_tags($response['body']) . '"');
     }
   }
 
@@ -242,7 +265,7 @@ class Gapi
    * @param String $filter
    * @return String Compatible filter string
    */
-  protected function processFilter($filter)
+  protected function processFilter ($filter)
   {
     $valid_operators = '(!~|=~|==|!=|>|<|>=|<=|=@|!@)';
     
@@ -252,13 +275,13 @@ class Gapi
     $filter = preg_replace('/[\'\"]/i','',$filter); //Clear invalid quote characters
     $filter = preg_replace(array('/\s*&&\s*/','/\s*\|\|\s*/','/\s*' . $valid_operators . '\s*/'),array(';',',','$1'),$filter); //Clean up operators
     
-    if(strlen($filter)>0)
+    if (strlen($filter) > 0)
     {
       return urlencode($filter);
     }
     else 
     {
-      return false;
+      return FALSE;
     }
   }
   
@@ -268,42 +291,42 @@ class Gapi
    * @param String $xml_string
    * @return Array of GapiAccountEntry objects
    */
-  protected function accountObjectMapper($xml_string)
+  protected function accountObjectMapper ($xml_string)
   {
     $xml = simplexml_load_string($xml_string);
     
-    $this->results = null;
-    
-    $results = array();
+    $this->results = NULL;
+    $results       = array();
+
     $account_root_parameters = array();
     
     //Load root parameters
     
-    $account_root_parameters['updated'] = strval($xml->updated);
-    $account_root_parameters['generator'] = strval($xml->generator);
+    $account_root_parameters['updated']          = strval($xml->updated);
+    $account_root_parameters['generator']        = strval($xml->generator);
     $account_root_parameters['generatorVersion'] = strval($xml->generator->attributes());
     
     $open_search_results = $xml->children('http://a9.com/-/spec/opensearchrss/1.0/');
     
-    foreach($open_search_results as $key => $open_search_result)
+    foreach ($open_search_results as $key => $open_search_result)
     {
       $report_root_parameters[$key] = intval($open_search_result);
     }
     
     $account_root_parameters['startDate'] = strval($xml->startDate);
-    $account_root_parameters['endDate'] = strval($xml->endDate);
+    $account_root_parameters['endDate']   = strval($xml->endDate);
     
     //Load result entries
     
-    foreach($xml->entry as $entry)
+    foreach ($xml->entry as $entry)
     {
       $properties = array();
-      foreach($entry->children('http://schemas.google.com/analytics/2009')->property as $property)
+      foreach ($entry->children('http://schemas.google.com/analytics/2009')->property as $property)
       {
         $properties[str_replace('ga:','',$property->attributes()->name)] = strval($property->attributes()->value);
       }
       
-      $properties['title'] = strval($entry->title);
+      $properties['title']   = strval($entry->title);
       $properties['updated'] = strval($entry->updated);
       
       $results[] = new GapiAccountEntry($properties);
@@ -322,47 +345,47 @@ class Gapi
    * @param String $xml_string
    * @return Array of GapiReportEntry objects
    */
-  protected function reportObjectMapper($xml_string)
+  protected function reportObjectMapper ($xml_string)
   {
     $xml = simplexml_load_string($xml_string);
     
-    $this->results = null;
-    $results = array();
+    $this->results = NULL;
+    $results       = array();
     
-    $report_root_parameters = array();
+    $report_root_parameters   = array();
     $report_aggregate_metrics = array();
     
     //Load root parameters
     
-    $report_root_parameters['updated'] = strval($xml->updated);
-    $report_root_parameters['generator'] = strval($xml->generator);
+    $report_root_parameters['updated']          = strval($xml->updated);
+    $report_root_parameters['generator']        = strval($xml->generator);
     $report_root_parameters['generatorVersion'] = strval($xml->generator->attributes());
     
     $open_search_results = $xml->children('http://a9.com/-/spec/opensearchrss/1.0/');
     
-    foreach($open_search_results as $key => $open_search_result)
+    foreach ($open_search_results as $key => $open_search_result)
     {
       $report_root_parameters[$key] = intval($open_search_result);
     }
     
     $google_results = $xml->children('http://schemas.google.com/analytics/2009');
 
-    foreach($google_results->dataSource->property as $property_attributes)
+    foreach ($google_results->dataSource->property as $property_attributes)
     {
       $report_root_parameters[str_replace('ga:','',$property_attributes->attributes()->name)] = strval($property_attributes->attributes()->value);
     }
     
     $report_root_parameters['startDate'] = strval($google_results->startDate);
-    $report_root_parameters['endDate'] = strval($google_results->endDate);
+    $report_root_parameters['endDate']   = strval($google_results->endDate);
     
     //Load result aggregate metrics
     
-    foreach($google_results->aggregates->metric as $aggregate_metric)
+    foreach ($google_results->aggregates->metric as $aggregate_metric)
     {
       $metric_value = strval($aggregate_metric->attributes()->value);
       
       //Check for float, or value with scientific notation
-      if(preg_match('/^(\d+\.\d+)|(\d+E\d+)|(\d+.\d+E\d+)$/',$metric_value))
+      if (preg_match('/^(\d+\.\d+)|(\d+E\d+)|(\d+.\d+E\d+)$/', $metric_value))
       {
         $report_aggregate_metrics[str_replace('ga:','',$aggregate_metric->attributes()->name)] = floatval($metric_value);
       }
@@ -374,15 +397,15 @@ class Gapi
     
     //Load result entries
     
-    foreach($xml->entry as $entry)
+    foreach ($xml->entry as $entry)
     {
       $metrics = array();
-      foreach($entry->children('http://schemas.google.com/analytics/2009')->metric as $metric)
+      foreach ($entry->children('http://schemas.google.com/analytics/2009')->metric as $metric)
       {
         $metric_value = strval($metric->attributes()->value);
         
         //Check for float, or value with scientific notation
-        if(preg_match('/^(\d+\.\d+)|(\d+E\d+)|(\d+.\d+E\d+)$/',$metric_value))
+        if (preg_match('/^(\d+\.\d+)|(\d+E\d+)|(\d+.\d+E\d+)$/', $metric_value))
         {
           $metrics[str_replace('ga:','',$metric->attributes()->name)] = floatval($metric_value);
         }
@@ -393,17 +416,17 @@ class Gapi
       }
       
       $dimensions = array();
-      foreach($entry->children('http://schemas.google.com/analytics/2009')->dimension as $dimension)
+      foreach ($entry->children('http://schemas.google.com/analytics/2009')->dimension as $dimension)
       {
         $dimensions[str_replace('ga:','',$dimension->attributes()->name)] = strval($dimension->attributes()->value);
       }
       
-      $results[] = new GapiReportEntry($metrics,$dimensions);
+      $results[] = new GapiReportEntry($metrics, $dimensions);
     }
     
-    $this->report_root_parameters = $report_root_parameters;
+    $this->report_root_parameters   = $report_root_parameters;
     $this->report_aggregate_metrics = $report_aggregate_metrics;
-    $this->results = $results;
+    $this->results                  = $results;
     
     return $results;
   }
@@ -413,25 +436,28 @@ class Gapi
    *
    * @param String $email
    * @param String $password
+   *
+   * @throws \Exception
    */
-  protected function authenticateUser($email, $password)
+  protected function authenticateUser ($email, $password)
   {
-    $post_variables = array(
+    $post_variables = array
+    (
       'accountType' => 'GOOGLE',
-      'Email' => $email,
-      'Passwd' => $password,
-      'source' => gapi::interface_name,
-      'service' => 'analytics'
+      'Email'       => $email,
+      'Passwd'      => $password,
+      'source'      => Gapi::INTERFACE_NAME,
+      'service'     => 'analytics'
     );
     
-    $response = $this->httpRequest(gapi::client_login_url,null,$post_variables);
+    $response = $this->httpRequest(Gapi::CLIENT_LOGIN_URL, NULL, $post_variables);
     
     //Convert newline delimited variables into url format then import to array
-    parse_str(str_replace(array("\n","\r\n"),'&',$response['body']),$auth_token);
+    parse_str(str_replace(array("\n","\r\n"), '&', $response['body']), $auth_token);
     
-    if(substr($response['code'],0,1) != '2' || !is_array($auth_token) || empty($auth_token['Auth']))
+    if ((integer)substr($response['code'],0,1) !== 2 || !is_array($auth_token) || empty($auth_token['Auth']))
     {
-      throw new Exception('GAPI: Failed to authenticate user. Error: "' . strip_tags($response['body']) . '"');
+      throw new \RuntimeException('GAPI: Failed to authenticate user. Error: "' . strip_tags($response['body']) . '"');
     }
     
     $this->auth_token = $auth_token['Auth'];
@@ -444,26 +470,31 @@ class Gapi
    */
   protected function generateAuthHeader()
   {
-    if($this->oauth2) {
+    if ($this->oauth2)
+    {
         return array('Authorization: Bearer ' . $this->auth_token);
-    } else {
+    }
+    else
+    {
         return array('Authorization: GoogleLogin auth=' . $this->auth_token);
     }
   }
   
   /**
    * Perform http request
-   * 
    *
-   * @param Array $get_variables
-   * @param Array $post_variables
-   * @param Array $headers
+   * @param string $url     request url
+   * @param Array  $get_    variables
+   * @param Array  $post_   variables
+   * @param Array  $headers
+   *
+   * @return array
    */
-  protected function httpRequest($url, $get_variables=null, $post_variables=null, $headers=null)
+  protected function httpRequest ($url, $get_variables = NULL, $post_variables = NULL, $headers = NULL)
   {
-    $interface = gapi::http_interface;
+    $interface = Gapi::HTTP_INTERFACE;
     
-    if(gapi::http_interface =='auto')
+    if(Gapi::HTTP_INTERFACE =='auto')
     {
       if(function_exists('curl_exec'))
       {
@@ -479,44 +510,40 @@ class Gapi
     {
       return $this->curlRequest($url, $get_variables, $post_variables, $headers);
     }
-    elseif($interface == 'fopen') 
-    {
-      return $this->fopenRequest($url, $get_variables, $post_variables, $headers);
-    }
-    else 
-    {
-      throw new Exception('Invalid http interface defined. No such interface "' . gapi::http_interface . '"');
-    }
+    return $this->fopenRequest($url, $get_variables, $post_variables, $headers);
   }
   
   /**
    * HTTP request using PHP CURL functions
    * Requires curl library installed and configured for PHP
-   * 
+   *
+   * @param string request url
    * @param Array $get_variables
    * @param Array $post_variables
    * @param Array $headers
+   *
+   * @return array
    */
-  private function curlRequest($url, $get_variables=null, $post_variables=null, $headers=null)
+  private function curlRequest ($url, $get_variables = NULL, $post_variables = NULL, $headers = NULL)
   {
     $ch = curl_init();
     
-    if(is_array($get_variables))
+    if (is_array($get_variables))
     {
       $get_variables = '?' . str_replace('&amp;','&',urldecode(http_build_query($get_variables)));
     }
     else 
     {
-      $get_variables = null;
+      $get_variables = NULL;
     }
     
     curl_setopt($ch, CURLOPT_URL, $url . $get_variables);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); //CURL doesn't like google's cert
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE); //CURL doesn't like google's cert
     
-    if(is_array($post_variables))
+    if (is_array($post_variables))
     {
-      curl_setopt($ch, CURLOPT_POST, true);
+      curl_setopt($ch, CURLOPT_POST, TRUE);
       curl_setopt($ch, CURLOPT_POSTFIELDS, $post_variables);
     }
     
@@ -530,22 +557,29 @@ class Gapi
     
     curl_close($ch);
     
-    return array('body'=>$response,'code'=>$code);
+    return array
+    (
+      'body' => $response,
+      'code' => $code
+    );
   }
   
   /**
    * HTTP request using native PHP fopen function
    * Requires PHP openSSL
    *
+   * @param string $url request url
    * @param Array $get_variables
    * @param Array $post_variables
    * @param Array $headers
+   *
+   * @return array
    */
-  private function fopenRequest($url, $get_variables=null, $post_variables=null, $headers=null)
+  private function fopenRequest ($url, $get_variables = NULL, $post_variables = NULL, $headers = NULL)
   {
     $http_options = array('method'=>'GET','timeout'=>3);
     
-    if(is_array($headers))
+    if (is_array($headers))
     {
       $headers = implode("\r\n",$headers) . "\r\n";
     }
@@ -554,33 +588,36 @@ class Gapi
       $headers = '';
     }
     
-    if(is_array($get_variables))
+    if (is_array($get_variables))
     {
       $get_variables = '?' . str_replace('&amp;','&',urldecode(http_build_query($get_variables)));
     }
     else 
     {
-      $get_variables = null;
+      $get_variables = NULL;
     }
     
-    if(is_array($post_variables))
+    if (is_array($post_variables))
     {
-      $post_variables = str_replace('&amp;','&',urldecode(http_build_query($post_variables)));
-      $http_options['method'] = 'POST';
-      $headers = "Content-type: application/x-www-form-urlencoded\r\n" . "Content-Length: " . strlen($post_variables) . "\r\n" . $headers;
-      $http_options['header'] = $headers;
+      $post_variables          = str_replace('&amp;','&',urldecode(http_build_query($post_variables)));
+      $http_options['method']  = 'POST';
+      $headers                 = "Content-type: application/x-www-form-urlencoded\r\n" . "Content-Length: " . strlen($post_variables) . "\r\n" . $headers;
+      $http_options['header']  = $headers;
       $http_options['content'] = $post_variables;
     }
     else 
     {
-      $post_variables = '';
       $http_options['header'] = $headers;
     }
     
     $context = stream_context_create(array('http'=>$http_options));
-    $response = @file_get_contents($url . $get_variables, null, $context);  
+    $response = @file_get_contents($url . $get_variables, NULL, $context);
     
-    return array('body'=>$response!==false?$response:'Request failed, fopen provides no further information','code'=>$response!==false?'200':'400');
+    return array
+    (
+      'body' => $response !== FALSE ? $response : 'Request failed, fopen provides no further information',
+      'code' => $response !== FALSE ? '200' : '400'
+    );
   }
   
   /**
@@ -591,7 +628,7 @@ class Gapi
    * @param Array $search
    * @return String Matching array key
    */
-  public static function array_key_exists_nc($key, $search)
+  public static function array_key_exists_nc ($key, $search)
   {
     if (array_key_exists($key, $search))
     {
@@ -599,17 +636,17 @@ class Gapi
     }
     if (!(is_string($key) && is_array($search)))
     {
-      return false;
+      return FALSE;
     }
     $key = strtolower($key);
     foreach ($search as $k => $v)
     {
-      if (strtolower($k) == $key)
+      if (strtolower($k) === $key)
       {
         return $k;
       }
     }
-    return false;
+    return FALSE;
   }
   
   /**
@@ -617,7 +654,7 @@ class Gapi
    *
    * @return Array
    */
-  public function getResults()
+  public function getResults ()
   {
     if(is_array($this->results))
     {
@@ -625,7 +662,7 @@ class Gapi
     }
     else 
     {
-      return;
+      return FALSE;
     }
   }
   
@@ -636,7 +673,7 @@ class Gapi
    *
    * @return Array
    */
-  public function getMetrics()
+  public function getMetrics ()
   {
     return $this->report_aggregate_metrics;
   }
@@ -646,33 +683,34 @@ class Gapi
    * aggregate metric to return
    *
    * @param $name String name of function called
+   * @param $parameters array
    * @return String
-   * @throws Exception if not a valid parameter or aggregate 
+   * @throws \Exception if not a valid parameter or aggregate
    * metric, or not a 'get' function
    */
-  public function __call($name,$parameters)
+  public function __call ($name, $parameters)
   {
-    if(!preg_match('/^get/',$name))
+    if (!preg_match('/^get/', $name))
     {
-      throw new Exception('No such function "' . $name . '"');
+      throw new \InvalidArgumentException('No such function "' . $name . '"');
     }
     
-    $name = preg_replace('/^get/','',$name);
+    $name = preg_replace('/^get/', '', $name);
     
-    $parameter_key = gapi::array_key_exists_nc($name,$this->report_root_parameters);
+    $parameter_key = Gapi::array_key_exists_nc($name,$this->report_root_parameters);
     
-    if($parameter_key)
+    if ($parameter_key)
     {
       return $this->report_root_parameters[$parameter_key];
     }
     
-    $aggregate_metric_key = gapi::array_key_exists_nc($name,$this->report_aggregate_metrics);
+    $aggregate_metric_key = Gapi::array_key_exists_nc($name,$this->report_aggregate_metrics);
     
-    if($aggregate_metric_key)
+    if ($aggregate_metric_key)
     {
       return $this->report_aggregate_metrics[$aggregate_metric_key];
     }
 
-    throw new Exception('No valid root parameter or aggregate metric called "' . $name . '"');
+    throw new \InvalidArgumentException('No valid root parameter or aggregate metric called "' . $name . '"');
   }
 }
