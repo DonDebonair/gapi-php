@@ -35,13 +35,13 @@ namespace Gapi;
 
 class Gapi
 {
-  const http_interface = 'auto'; //'auto': autodetect, 'curl' or 'fopen'
+  const HTTP_INTERFACE = 'auto'; //'auto': autodetect, 'curl' or 'fopen'
   
-  const client_login_url = 'https://www.google.com/accounts/ClientLogin';
-  const account_data_url = 'https://www.googleapis.com/analytics/v2.4/management/accounts/~all/webproperties/~all/profiles';
-  const report_data_url = 'https://www.googleapis.com/analytics/v2.4/data';
-  const interface_name = 'GAPI-1.3';
-  const dev_mode = false;
+  const CLIENT_LOGIN_URL = 'https://www.google.com/accounts/ClientLogin';
+  const ACCOUNT_DATA_URL = 'https://www.googleapis.com/analytics/v2.4/management/accounts/~all/webproperties/~all/profiles';
+  const REPORT_DATA_URL = 'https://www.googleapis.com/analytics/v2.4/data';
+  const INTERFACE_NAME = 'GAPI-1.3';
+  const DEV_MODE = false;
   
   private $auth_token = null;
   private $account_entries = array();
@@ -92,7 +92,7 @@ class Gapi
    */
   public function requestAccountData($start_index=1, $max_results=20)
   {
-    $response = $this->httpRequest(gapi::account_data_url, array('start-index'=>$start_index,'max-results'=>$max_results), null, $this->generateAuthHeader());
+    $response = $this->httpRequest(gapi::ACCOUNT_DATA_URL, array('start-index'=>$start_index,'max-results'=>$max_results), null, $this->generateAuthHeader());
     
     if(substr($response['code'],0,1) == '2')
     {
@@ -219,9 +219,9 @@ class Gapi
     $parameters['start-index'] = $start_index;
     $parameters['max-results'] = $max_results;
     
-    $parameters['prettyprint'] = gapi::dev_mode ? 'true' : 'false';
+    $parameters['prettyprint'] = gapi::DEV_MODE ? 'true' : 'false';
     
-    $response = $this->httpRequest(gapi::report_data_url, $parameters, null, $this->generateAuthHeader());
+    $response = $this->httpRequest(gapi::REPORT_DATA_URL, $parameters, null, $this->generateAuthHeader());
     
     //HTTP 2xx
     if(substr($response['code'],0,1) == '2')
@@ -419,11 +419,11 @@ class Gapi
       'accountType' => 'GOOGLE',
       'Email' => $email,
       'Passwd' => $password,
-      'source' => gapi::interface_name,
+      'source' => gapi::INTERFACE_NAME,
       'service' => 'analytics'
     );
     
-    $response = $this->httpRequest(gapi::client_login_url,null,$post_variables);
+    $response = $this->httpRequest(gapi::CLIENT_LOGIN_URL,null,$post_variables);
     
     //Convert newline delimited variables into url format then import to array
     parse_str(str_replace(array("\n","\r\n"),'&',$response['body']),$auth_token);
@@ -460,9 +460,9 @@ class Gapi
    */
   protected function httpRequest($url, $get_variables=null, $post_variables=null, $headers=null)
   {
-    $interface = gapi::http_interface;
+    $interface = gapi::HTTP_INTERFACE;
     
-    if(gapi::http_interface =='auto')
+    if(gapi::HTTP_INTERFACE =='auto')
     {
       if(function_exists('curl_exec'))
       {
@@ -484,7 +484,7 @@ class Gapi
     }
     else 
     {
-      throw new \Exception('Invalid http interface defined. No such interface "' . gapi::http_interface . '"');
+      throw new \Exception('Invalid http interface defined. No such interface "' . gapi::HTTP_INTERFACE . '"');
     }
   }
   
