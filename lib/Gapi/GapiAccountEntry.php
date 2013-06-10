@@ -1,18 +1,18 @@
 <?php
 
-require_once 'Gapi.php';
+namespace Gapi;
 
 /**
- * Class gapiAccountEntry
+ * Class GapiAccountEntry
  * 
- * Storage for individual gapi account entries
+ * Storage for individual Gapi account entries
  *
  */
 class GapiAccountEntry
 {
   private $properties = array();
   
-  public function __construct($properties)
+  public function __construct ($properties)
   {
     $this->properties = $properties;
   }
@@ -22,15 +22,15 @@ class GapiAccountEntry
    *
    * @return String
    */
-  public function __toString()
+  public function __toString ()
   {
-    if(isset($this->properties['title']))
+    if (isset($this->properties['title']))
     {
       return $this->properties['title'];
     }
     else 
     {
-      return;
+      return NULL;
     }
   }
   
@@ -40,7 +40,7 @@ class GapiAccountEntry
    *
    * @return Array
    */
-  public function getProperties()
+  public function getProperties ()
   {
     return $this->properties;
   }
@@ -49,25 +49,26 @@ class GapiAccountEntry
    * Call method to find a matching parameter to return
    *
    * @param $name String name of function called
+   * @param $parameters
    * @return String
-   * @throws Exception if not a valid parameter, or not a 'get' function
+   * @throws \InvalidArgumentException if not a valid parameter, or not a 'get' function
    */
-  public function __call($name,$parameters)
+  public function __call ($name, $parameters)
   {
-    if(!preg_match('/^get/',$name))
+    if (!preg_match('/^get/',$name))
     {
-      throw new Exception('No such function "' . $name . '"');
+      throw new \InvalidArgumentException('No such function "' . $name . '"');
     }
     
     $name = preg_replace('/^get/','',$name);
     
-    $property_key = gapi::array_key_exists_nc($name,$this->properties);
+    $property_key = Gapi::array_key_exists_nc($name,$this->properties);
     
-    if($property_key)
+    if ($property_key)
     {
       return $this->properties[$property_key];
     }
     
-    throw new Exception('No valid property called "' . $name . '"');
+    throw new \InvalidArgumentException('No valid property called "' . $name . '"');
   }
 }
