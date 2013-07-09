@@ -306,7 +306,7 @@ class Gapi
     $account_root_parameters['generator']        = strval($xml->generator);
     $account_root_parameters['generatorVersion'] = strval($xml->generator->attributes());
     
-    $open_search_results = $xml->children('http://a9.com/-/spec/opensearchrss/1.0/');
+    $open_search_results = $xml->children('http://a9.com/-/spec/opensearch/1.1/');
     
     foreach ($open_search_results as $key => $open_search_result)
     {
@@ -361,7 +361,7 @@ class Gapi
     $report_root_parameters['generator']        = strval($xml->generator);
     $report_root_parameters['generatorVersion'] = strval($xml->generator->attributes());
     
-    $open_search_results = $xml->children('http://a9.com/-/spec/opensearchrss/1.0/');
+    $open_search_results = $xml->children('http://a9.com/-/spec/opensearch/1.1/');
     
     foreach ($open_search_results as $key => $open_search_result)
     {
