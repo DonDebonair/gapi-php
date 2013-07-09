@@ -271,7 +271,7 @@ class Gapi
     
     $filter = preg_replace('/\s\s+/',' ',trim($filter)); //Clean duplicate whitespace
     $filter = str_replace(array(',',';'),array('\,','\;'),$filter); //Escape Google Analytics reserved characters
-    $filter = preg_replace('/(&&\s*|\|\|\s*|^)([a-z]+)(\s*' . $valid_operators . ')/i','$1ga:$2$3',$filter); //Prefix ga: to metrics and dimensions
+    $filter = preg_replace('/(&&\s*|\|\|\s*|^)([a-z1-5]+)(\s*' . $valid_operators . ')/i','$1ga:$2$3',$filter); //Prefix ga: to metrics and dimensions
     $filter = preg_replace('/[\'\"]/i','',$filter); //Clear invalid quote characters
     $filter = preg_replace(array('/\s*&&\s*/','/\s*\|\|\s*/','/\s*' . $valid_operators . '\s*/'),array(';',',','$1'),$filter); //Clean up operators
     
@@ -306,7 +306,7 @@ class Gapi
     $account_root_parameters['generator']        = strval($xml->generator);
     $account_root_parameters['generatorVersion'] = strval($xml->generator->attributes());
     
-    $open_search_results = $xml->children('http://a9.com/-/spec/opensearchrss/1.0/');
+    $open_search_results = $xml->children('http://a9.com/-/spec/opensearch/1.1/');
     
     foreach ($open_search_results as $key => $open_search_result)
     {
@@ -361,7 +361,7 @@ class Gapi
     $report_root_parameters['generator']        = strval($xml->generator);
     $report_root_parameters['generatorVersion'] = strval($xml->generator->attributes());
     
-    $open_search_results = $xml->children('http://a9.com/-/spec/opensearchrss/1.0/');
+    $open_search_results = $xml->children('http://a9.com/-/spec/opensearch/1.1/');
     
     foreach ($open_search_results as $key => $open_search_result)
     {
