@@ -460,7 +460,7 @@ class Gapi
       throw new \RuntimeException('GAPI: Failed to authenticate user. Error: "' . strip_tags($response['body']) . '"');
     }
     
-    $this->auth_token = $auth_token['Auth'];
+    $this->auth_token = isset($auth_token['Auth']) ? $auth_token['Auth'] : NULL;
   }
   
   /**
