@@ -55,6 +55,7 @@ class Gapi
   private $report_root_parameters   = array();
   private $results                  = array();
   private $oauth2;
+  private $apikey                   = NULL;
   
   /**
    * Constructor function for all new Gapi instances
@@ -79,6 +80,16 @@ class Gapi
     {
       $this->authenticateUser($email,$password);
     }
+  }
+
+  /**
+   * Set api key for communication
+   *
+   * @param String $key
+   */
+  public function setApiKey($key)
+  {
+    $this->apikey = $key;
   }
   
   /**
@@ -148,6 +159,11 @@ class Gapi
   public function requestReportData ($report_id, $dimensions, $metrics, $sort_metric = NULL, $filter = NULL, $start_date = NULL, $end_date = NULL, $start_index = 1, $max_results = 30)
   {
     $parameters = array('ids' => 'ga:' . $report_id);
+
+    if (!is_null($this->apikey))
+    {
+	  $parameters['key'] = $this->apikey;
+    }
     
     if (is_array($dimensions))
     {
