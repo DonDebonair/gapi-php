@@ -46,7 +46,7 @@ class GapiReportEntry
    *
    * @return Array
    */
-  public function getDimesions ()
+  public function getDimensions ()
   {
     return $this->dimensions;
   }
